@@ -1,51 +1,73 @@
+// netlib.go
+
+// Package netlib provides high-level networking functionalities supporting TCP and UDP socket operations.
+
 package netlib
 
 import (
-	"net"
-	"time"
+	"net"	
+	"fmt"
+	"errors"
 )
 
-type TCPServer struct {
-	listener net.Listener
+// TCPClient represents a TCP client that connects to a given address.
+type TCPClient struct {
+	conn *net.TCPConn
 }
 
-type UDPServer struct {
+// NewTCPClient creates a new TCP client.
+func NewTCPClient(address string) (*TCPClient, error) {
+	// Resolve TCP address
+	tcpAddr, err := net.ResolveTCPAddr("tcp", address)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create TCP connection
+	conn, err := net.DialTCP("tcp", nil, tcpAddr)
+	if err != nil {
+		return nil, err
+	}
+	return &TCPClient{conn: conn}, nil
+}
+
+// Send sends data over the TCP connection.
+func (c *TCPClient) Send(data []byte) (int, error) {
+	return c.conn.Write(data)
+}
+
+// Close closes the TCP connection.
+func (c *TCPClient) Close() error {
+	return c.conn.Close()
+}
+
+// UDPClient represents a UDP client.
+type UDPClient struct {
 	conn *net.UDPConn
 }
 
-func NewTCPServer(port string) (*TCPServer, error) {
-	listener, err := net.Listen("tcp", ":"+port)
+// NewUDPClient creates a new UDP client.
+func NewUDPClient(address string) (*UDPClient, error) {
+	// Resolve UDP address
+	udpAddr, err := net.ResolveUDPAddr("udp", address)
 	if err != nil {
 		return nil, err
 	}
-	return &TCPServer{listener: listener}, nil
-}
 
-func (s *TCPServer) Accept() (net.Conn, error) {
-	return s.listener.Accept()
-}
-
-func (s *TCPServer) Close() error {
-	return s.listener.Close()
-}
-
-func NewUDPServer(port string) (*UDPServer, error) {
-	addr, err := net.ResolveUDPAddr("udp", ":"+port)
+	// Create UDP connection
+	conn, err := net.DialUDP("udp", nil, udpAddr)
 	if err != nil {
 		return nil, err
 	}
-	conn, err := net.ListenUDP("udp", addr)
-	if err != nil {
-		return nil, err
-	}
-	return &UDPServer{conn: conn}, nil
+	return &UDPClient{conn: conn}, nil
 }
 
-func (s *UDPServer) Read(b []byte) (int, net.Addr, error) {
-	n, addr, err := s.conn.ReadFromUDP(b)
-	return n, addr, err
+// Send sends data over the UDP connection.
+func (c *UDPClient) Send(data []byte) (int, error) {
+	return c.conn.Write(data)
 }
 
-func (s *UDPServer) Close() error {
-	return s.conn.Close()
+// Close closes the UDP connection.
+func (c *UDPClient) Close() error {
+	return c.conn.Close()
 }
